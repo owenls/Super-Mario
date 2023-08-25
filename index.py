@@ -11,6 +11,6 @@ for step in range(5000):
     action = env.action_space.sample()
     obs, reward, terminated, truncated, info = env.step(action)
     done = terminated or truncated
-if done:
-    state = env.reset()
-    env.close()
+    if done:
+        state = env.reset()
+        env.close()
