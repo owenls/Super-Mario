@@ -21,7 +21,8 @@ jump_interval = 30
 
 step_counter = 0
 jump_counter = 0
-jump_duration = 20
+max_jump_duration = 20
+distanceToJump = 30
 
 def goombaCheck(obs):
     target_color = [228, 92, 16]
@@ -32,14 +33,22 @@ def goombaCheck(obs):
     if is_goomba_present:
         return True
 
+   
+    return is_goomba_present
+
+
+# Chec if pipe is detected
+def pipeDetection(obs):
     target_color = [184, 248, 24]
     # Select the second half of the array at y-coordinate 206 (index 205)
     half_obs = obs[186][100:150]
     # Check if any pixel in the selected region matches the target color
     is_pipe_present = np.any(np.all(half_obs == target_color, axis=-1))
+
+    if is_pipe_present:
+        return True
+    
     return is_pipe_present
-
-
 for step in range(7000):
     if done:
         state = env.reset()
@@ -49,17 +58,21 @@ for step in range(7000):
 
     if goombaCheck(obs):
         obs, reward, terminated, truncated, info = env.step(jump_action)
-        obs, reward, terminated, truncated, info = env.step(jump_action)
-        obs, reward, terminated, truncated, info = env.step(jump_action)
-
         done = terminated or truncated
-        jump_counter = 0
-        for _ in range(jump_duration):
+    
+
+    if pipeDetection(obs):
+        if step_counter < distanceToJump:
             obs, reward, terminated, truncated, info = env.step(jump_action)
             done = terminated or truncated
+        else:
+   
+            obs, reward, terminated, truncated, info = env.step(right_action)
+            done = terminated or truncated
 
-        jump_counter = 0
+    step_counter += 1
     time.sleep(frame_delay)
+
 
     # plt.imshow(obs)
     # plt.grid(True)
