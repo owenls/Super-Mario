@@ -13,20 +13,20 @@ env = JoypadSpace(env, SIMPLE_MOVEMENT)
 done = True
 env.reset()
 
-frame_delay = 0.02
+frame_delay = 0.03
 right_action = 1
 jump_action = 5
+jump_and_go_right = 2
 
-jump_interval = 30
-
-step_counter = 0
-jump_counter = 0
 jump_duration = 20
 
-def goombaCheck(obs):
+
+def shouldJump(obs, info):
+    pos = info['x_pos']  # Mario's current 'x' position
+    gap = pos+2  # The gap in front that we chek to see if should jump
     target_color = [228, 92, 16]
     # Select the second half of the array at y-coordinate 206 (index 205)
-    half_obs = obs[202][128:200]
+    half_obs = obs[202][pos:gap]
     # Check if any pixel in the selected region matches the target color
     is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
     if is_goomba_present:
@@ -34,7 +34,7 @@ def goombaCheck(obs):
 
     target_color = [184, 248, 24]
     # Select the second half of the array at y-coordinate 206 (index 205)
-    half_obs = obs[186][100:150]
+    half_obs = obs[186][pos:gap]
     # Check if any pixel in the selected region matches the target color
     is_pipe_present = np.any(np.all(half_obs == target_color, axis=-1))
     return is_pipe_present
@@ -47,31 +47,12 @@ for step in range(7000):
     obs, reward, terminated, truncated, info = env.step(right_action)
     done = terminated or truncated
 
-    if goombaCheck(obs):
-        obs, reward, terminated, truncated, info = env.step(jump_action)
-        obs, reward, terminated, truncated, info = env.step(jump_action)
-        obs, reward, terminated, truncated, info = env.step(jump_action)
-
-        done = terminated or truncated
-        jump_counter = 0
+    if shouldJump(obs, info):
         for _ in range(jump_duration):
-            obs, reward, terminated, truncated, info = env.step(jump_action)
+            obs, reward, terminated, truncated, info = env.step(
+                jump_and_go_right)
             done = terminated or truncated
 
-        jump_counter = 0
     time.sleep(frame_delay)
-
-    # plt.imshow(obs)
-    # plt.grid(True)
-    # plt.show()
-    # # Convert obs to an Image object
-    # obs_image = Image.fromarray(obs)
-
-    # # Save the image to a file (optional)
-    # obs_image.save("obs.png")
-
-    # # Display the image (optional)
-    # obs_image.show()
-
 
 env.close()
