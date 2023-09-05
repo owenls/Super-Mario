@@ -65,8 +65,8 @@ for step in range(7000):
     
 
     if pipeDetection(obs):
-        if not jumping: 
-            for _ in range(45): 
+        if not jumping:  
+            for _ in range(4):  
                 obs, reward, terminated, truncated, info = env.step(jump_action)
                 done = terminated or truncated
             jumping = True
