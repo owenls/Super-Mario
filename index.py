@@ -21,7 +21,7 @@ jump_interval = 30
 
 step_counter = 0
 jump_counter = 0
-
+jump_duration = 20
 
 def goombaCheck(obs):
     target_color = [228, 92, 16]
@@ -54,7 +54,11 @@ for step in range(7000):
 
         done = terminated or truncated
         jump_counter = 0
+        for _ in range(jump_duration):
+            obs, reward, terminated, truncated, info = env.step(jump_action)
+            done = terminated or truncated
 
+        jump_counter = 0
     time.sleep(frame_delay)
 
     # plt.imshow(obs)
