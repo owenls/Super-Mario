@@ -80,14 +80,14 @@ for step in range(10000):
             if done:
                 state = env.reset()
 
-    filter_colors = [[104, 136, 252], [184, 248, 24]]
-    for i in range(125, 165):
-        pixel = obs[202][i]
+    # filter_colors = [[104, 136, 252], [184, 248, 24]]
+    # for i in range(125, 165):
+    #     pixel = obs[202][i]
 
-        # Check if the pixel is not equal to any of the filter colors
-        if not any(np.all(pixel == color) for color in filter_colors):
-            print("HEREEE ["+str(i)+"]:", pixel)
-            print("-----------------------")
+    #     # Check if the pixel is not equal to any of the filter colors
+    #     if not any(np.all(pixel == color) for color in filter_colors):
+    #         print("HEREEE ["+str(i)+"]:", pixel)
+    #         print("-----------------------")
 
     time.sleep(frame_delay)
 
