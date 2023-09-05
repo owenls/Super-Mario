@@ -13,7 +13,7 @@ env = JoypadSpace(env, SIMPLE_MOVEMENT)
 done = True
 env.reset()
 
-frame_delay = 0.05
+frame_delay = 0.02
 right_action = 1
 jump_action = 5
 
@@ -54,9 +54,6 @@ for step in range(7000):
 
         done = terminated or truncated
         jump_counter = 0
-
-    step_counter += 1
-    jump_counter += 1
 
     time.sleep(frame_delay)
 
