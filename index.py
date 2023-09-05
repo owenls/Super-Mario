@@ -65,13 +65,13 @@ for step in range(7000):
     
 
     if pipeDetection(obs):
-        if not jumping:  # Only jump once when a pipe is detected
-            for _ in range(4):  # Adjust the number of steps to hold the jump button
+        if not jumping: 
+            for _ in range(45): 
                 obs, reward, terminated, truncated, info = env.step(jump_action)
                 done = terminated or truncated
             jumping = True
     else:
-        jumping = False  # Reset the jump flag if no pipe is detected
+        jumping = False 
 
     step_counter += 1
     time.sleep(frame_delay)
