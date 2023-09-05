@@ -17,7 +17,8 @@ goomba = [228, 92, 16]
 pipe = [184, 248, 24]
 gold_box = [252, 160, 68]
 sky = [104, 136, 252]
-frame_delay = 0.03
+turtle = [252, 252, 252]
+frame_delay = 0.02
 right_action = 1
 jump_action = 5
 jump_and_go_right = 2
@@ -51,10 +52,17 @@ def shouldJump(obs, info):
     if is_floor_gone:
         return True
 
+    target_color = turtle
+    half_obs = obs[202][125:150]
+    # Check if any pixel in the selected region matches the target color
+    turtle_near = np.any(np.all(half_obs == target_color, axis=-1))
+    if turtle_near:
+        return True
+
     return False
 
 
-for step in range(7000):
+for step in range(10000):
     if done:
         state = env.reset()
 
@@ -69,19 +77,24 @@ for step in range(7000):
             obs, reward, terminated, truncated, info = env.step(
                 jump_and_go_right)
             done = terminated or truncated
+            if done:
+                state = env.reset()
+
+    filter_colors = [[104, 136, 252], [184, 248, 24]]
+    for i in range(125, 165):
+        pixel = obs[202][i]
+
+        # Check if the pixel is not equal to any of the filter colors
+        if not any(np.all(pixel == color) for color in filter_colors):
+            print("HEREEE ["+str(i)+"]:", pixel)
+            print("-----------------------")
 
     time.sleep(frame_delay)
 
-    # plt.imshow(obs)
-    # plt.grid(True)
-    # plt.show()
-    # # Convert obs to an Image object
-    # obs_image = Image.fromarray(obs)
-
-    # # Save the image to a file (optional)
-    # obs_image.save("obs.png")
-
-    # # Display the image (optional)
-    # obs_image.show()
-
 env.close()
+
+
+# Use this to print a grid at a given point, makes it easier to see coordinates and RGB values.
+# plt.imshow(obs)
+# plt.grid(True)
+# plt.show()
