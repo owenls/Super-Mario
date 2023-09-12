@@ -7,110 +7,96 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 
-env = gym.make("SuperMarioBros-v0",
-               apply_api_compatibility=True, render_mode="human")
-env = JoypadSpace(env, SIMPLE_MOVEMENT)
-done = True
-env.reset()
 
-goomba = [228, 92, 16]
-pipe = [184, 248, 24]
-gold_box = [252, 160, 68]
-sky = [104, 136, 252]
-turtle = [252, 252, 252]
-frame_delay = 0.01
-right_action = 1
-jump_action = 5
-jump_and_go_right = 2
-jump_duration = 19
-stuck = False
-previous_x_pos = 10
-consecutive_stuck_frames = 0
+class RuleBasedMarioAgent:
+    def __init__(self):
+        self.env = gym.make("SuperMarioBros-v0",
+                            apply_api_compatibility=True, render_mode="human")
+        self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
+        self.done = True
+        self.env.reset()
 
-# Boolean function saying if mario should jump or not.
+        self.goomba = [228, 92, 16]
+        self.pipe = [184, 248, 24]
+        self.gold_box = [252, 160, 68]
+        self.sky = [104, 136, 252]
+        self.turtle = [252, 252, 252]
+        self.frame_delay = 0.01
+        self.right_action = 1
+        self.jump_action = 5
+        self.jump_and_go_right = 2
+        self.jump_duration = 19
+        self.stuck = False
+        self.previous_x_pos = 10
+        self.consecutive_stuck_frames = 0
 
+    def shouldJump(self, obs, info):
+        # CHECK IF GOOMBA NEARBY
+        target_color = self.goomba
+        half_obs = obs[202][125:165]
+        is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
+        if is_goomba_present:
+            return True
 
-def shouldJump(obs, info):
-    global previous_x_pos, consecutive_stuck_frames
-    # CHECK IF GOOMBA NEARBY
-    target_color = goomba
-    half_obs = obs[202][125:165]
-    # Check if any pixel in the selected region matches the target color
-    is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
-    if is_goomba_present:
-        return True
+        # CHECK IF PIPE NEARBY
+        target_color = self.pipe
+        half_obs = obs[192][125:180]
+        is_pipe_present = np.any(np.all(half_obs == target_color, axis=-1))
+        if is_pipe_present:
+            return True
 
-    # CHECK IF GOOMBA NEARBY
-    target_color = pipe
-    half_obs = obs[192][125:180]
-    # Check if any pixel in the selected region matches the target color
-    is_pipe_present = np.any(np.all(half_obs == target_color, axis=-1))
-    if is_pipe_present:
-        return True
+        # CHECK IF FLOOR IS MISSING (if floor is color of sky)
+        target_color = self.sky
+        half_obs = obs[215][125:150]
+        is_floor_gone = np.any(np.all(half_obs == target_color, axis=-1))
+        if is_floor_gone:
+            return True
 
-    # CHECK IF FLOOR IS MISSING ( if floor is colour of sky)
-    target_color = sky
-    half_obs = obs[215][125:150]
-    # Check if any pixel in the selected region matches the target color
-    is_floor_gone = np.any(np.all(half_obs == target_color, axis=-1))
-    if is_floor_gone:
-        return True
+        # CHECK IF TURTLE IS NEARBY
+        target_color = self.turtle
+        half_obs = obs[202][125:150]
+        turtle_near = np.any(np.all(half_obs == target_color, axis=-1))
+        if turtle_near:
+            return True
 
-    target_color = turtle
-    half_obs = obs[202][125:150]
-    # Check if any pixel in the selected region matches the target color
-    turtle_near = np.any(np.all(half_obs == target_color, axis=-1))
-    if turtle_near:
-        return True
+        # Checks if Mario is STUCK on something that went undetected.
+        if info['x_pos'] == self.previous_x_pos:
+            self.consecutive_stuck_frames += 1
+        else:
+            self.consecutive_stuck_frames = 0
+        stuck_threshold = 20
+        if self.consecutive_stuck_frames >= stuck_threshold:
+            return True
 
-    # Checks if mario is stuck on something that went undetected.
-    if info['x_pos'] == previous_x_pos:
-        consecutive_stuck_frames += 1
-    else:
-        consecutive_stuck_frames = 0
+        self.previous_x_pos = info['x_pos']
 
-    stuck_threshold = 20
-    if consecutive_stuck_frames >= stuck_threshold:
-        return True
+        return False
 
-    previous_x_pos = info['x_pos']
+    def run(self):
+        for step in range(10000):
+            if self.done:
+                state = self.env.reset()
 
-    return False
+            obs, reward, terminated, truncated, info = self.env.step(
+                self.right_action)
+            self.done = terminated or truncated
 
+            if self.done:
+                state = self.env.reset()
 
-for step in range(10000):
-    if done:
-        state = env.reset()
+            if self.shouldJump(obs, info):
+                for _ in range(self.jump_duration):
+                    obs, reward, terminated, truncated, info = self.env.step(
+                        self.jump_and_go_right)
+                    self.done = terminated or truncated
+                    if self.done:
+                        state = self.env.reset()
+            time.sleep(self.frame_delay)
 
-    obs, reward, terminated, truncated, info = env.step(right_action)
-    done = terminated or truncated
-
-    if done:
-        state = env.reset()
-
-    if shouldJump(obs, info):
-        for _ in range(jump_duration):
-            obs, reward, terminated, truncated, info = env.step(
-                jump_and_go_right)
-            done = terminated or truncated
-            if done:
-                state = env.reset()
-
-    # filter_colors = [[104, 136, 252], [184, 248, 24]]
-    # for i in range(125, 165):
-    #     pixel = obs[202][i]
-
-    #     # Check if the pixel is not equal to any of the filter colors
-    #     if not any(np.all(pixel == color) for color in filter_colors):
-    #         print("HEREEE ["+str(i)+"]:", pixel)
-    #         print("-----------------------")
-
-    time.sleep(frame_delay)
-
-env.close()
+        self.env.close()
 
 
-# Use this to print a grid at a given point, makes it easier to see coordinates and RGB values.
-# plt.imshow(obs)
-# plt.grid(True)
-# plt.show()
+# Usage of the MarioAgent class
+if __name__ == "__main__":
+    rule_based_mario = RuleBasedMarioAgent()
+    rule_based_mario.run()
