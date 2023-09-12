@@ -18,16 +18,20 @@ pipe = [184, 248, 24]
 gold_box = [252, 160, 68]
 sky = [104, 136, 252]
 turtle = [252, 252, 252]
-frame_delay = 0.02
+frame_delay = 0.01
 right_action = 1
 jump_action = 5
 jump_and_go_right = 2
-jump_duration = 20
+jump_duration = 19
+stuck = False
+previous_x_pos = 10
+consecutive_stuck_frames = 0
 
 # Boolean function saying if mario should jump or not.
 
 
 def shouldJump(obs, info):
+    global previous_x_pos, consecutive_stuck_frames
     # CHECK IF GOOMBA NEARBY
     target_color = goomba
     half_obs = obs[202][125:165]
@@ -38,7 +42,7 @@ def shouldJump(obs, info):
 
     # CHECK IF GOOMBA NEARBY
     target_color = pipe
-    half_obs = obs[186][125:150]
+    half_obs = obs[192][125:180]
     # Check if any pixel in the selected region matches the target color
     is_pipe_present = np.any(np.all(half_obs == target_color, axis=-1))
     if is_pipe_present:
@@ -58,6 +62,18 @@ def shouldJump(obs, info):
     turtle_near = np.any(np.all(half_obs == target_color, axis=-1))
     if turtle_near:
         return True
+
+    # Checks if mario is stuck on something that went undetected.
+    if info['x_pos'] == previous_x_pos:
+        consecutive_stuck_frames += 1
+    else:
+        consecutive_stuck_frames = 0
+
+    stuck_threshold = 20
+    if consecutive_stuck_frames >= stuck_threshold:
+        return True
+
+    previous_x_pos = info['x_pos']
 
     return False
 
