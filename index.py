@@ -1,3 +1,5 @@
+# Author 1: Owen Smith (22957291)
+# Author 2: John Lumagbas (23419439)
 import time
 from nes_py.wrappers import JoypadSpace
 import gym_super_mario_bros
