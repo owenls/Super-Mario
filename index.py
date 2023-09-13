@@ -19,6 +19,7 @@ class RuleBasedMarioAgent:
         self.env.reset()
 
         self.goomba = [228, 92, 16]
+        self.level2Goomba = [0, 136, 136]
         self.pipe = [184, 248, 24]
         self.gold_box = [252, 160, 68]
         self.sky = [104, 136, 252]
@@ -33,8 +34,16 @@ class RuleBasedMarioAgent:
         self.consecutive_stuck_frames = 0
 
     def shouldJump(self, obs, info):
+        print(info['life'])
         # CHECK IF GOOMBA NEARBY
         target_color = self.goomba
+        half_obs = obs[202][125:155]
+        is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
+        if is_goomba_present:
+            return True
+
+        # CHECK FOR GOOMBA ON LEVEL 2 (Different Colour)
+        target_color = self.level2Goomba
         half_obs = obs[202][125:165]
         is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
         if is_goomba_present:
