@@ -34,7 +34,6 @@ class RuleBasedMarioAgent:
         self.consecutive_stuck_frames = 0
 
     def shouldJump(self, obs, info):
-        print(info['life'])
         # CHECK IF GOOMBA NEARBY
         target_color = self.goomba
         half_obs = obs[202][125:155]
