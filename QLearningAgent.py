@@ -9,35 +9,42 @@ import gym
 
 class QLearningAgent:
     def __init__(self, env):
-        self.env = JoypadSpace(env, SIMPLE_MOVEMENT)
+        # I Limited the actions to only right and right + jump right now
+        # To do normal input just SIMPLE_MOVEMENT and self.action_space_size = 6
+        self.env = JoypadSpace(env, SIMPLE_MOVEMENT[1:3])
         self.state_space_size = self.calculate_state_space_size()
-        self.action_space_size = 6  # Number of possible actions (0 to 5)
-        self.Q = np.zeros((self.state_space_size, self.action_space_size))
-        self.learning_rate = 0.01
-        self.discount_factor = 0.8
+        self.action_space_size = 2  # Number of possible actions (0 to 5)
+        self.Q = {}  # Use a dictionary to store Q-values
+        self.learning_rate = 0.1  # Adjust as needed
+        self.discount_factor = 0.9  # Adjust as needed
         self.epsilon = 0.1  # Exploration vs. exploitation trade-off
         self.frame_delay = 0.02
         self.current_state = None
 
     def preprocess_state(self, state):
-        return np.array(state[0])
+        # Convert state to a tuple to use as a dictionary key
+        return tuple(state[0].flatten())
 
     def select_action(self, state):
         if random.uniform(0, 1) < self.epsilon:
             return random.randint(0, self.action_space_size - 1)
         else:
-            return np.argmax(self.Q[state, :])
+            if state not in self.Q:
+                self.Q[state] = np.zeros(self.action_space_size)
+            return np.argmax(self.Q[state])
 
     def calculate_state_space_size(self):
-        # Calculate the size of the state space based on observation space or other factors
-        observation_space = self.env.observation_space.shape
-        # Example: If you flatten the observation space, the state space size would be its length
-        state_space_size = np.prod(observation_space)
-        return state_space_size
+        # Calculate the size of the state space based on the observation space shape
+        return np.prod(self.env.observation_space.shape)
 
     def update_q_table(self, state, action, reward, next_state):
-        max_next_action_value = np.max(self.Q[next_state, :])
-        self.Q[state, action] = (1 - self.learning_rate) * self.Q[state, action] + \
+        if state not in self.Q:
+            self.Q[state] = np.zeros(self.action_space_size)
+        if next_state not in self.Q:
+            self.Q[next_state] = np.zeros(self.action_space_size)
+
+        max_next_action_value = np.max(self.Q[next_state])
+        self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
             self.learning_rate * \
             (reward + self.discount_factor * max_next_action_value)
 
