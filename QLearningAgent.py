@@ -5,15 +5,14 @@ import gym_super_mario_bros
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 from nes_py.wrappers import JoypadSpace
 import gym
+import pickle
 
 
 class QLearningAgent:
     def __init__(self, env):
-        # I Limited the actions to only right and right + jump right now
-        # To do normal input just SIMPLE_MOVEMENT and self.action_space_size = 6
-        self.env = JoypadSpace(env, SIMPLE_MOVEMENT[1:3])
+        self.env = JoypadSpace(env, SIMPLE_MOVEMENT)
         self.state_space_size = self.calculate_state_space_size()
-        self.action_space_size = 2  # Number of possible actions (0 to 5)
+        self.action_space_size = 6  # Number of possible actions (0 to 5)
         self.Q = {}  # Use a dictionary to store Q-values
         self.learning_rate = 0.1  # Adjust as needed
         self.discount_factor = 0.9  # Adjust as needed
@@ -48,6 +47,14 @@ class QLearningAgent:
             self.learning_rate * \
             (reward + self.discount_factor * max_next_action_value)
 
+    def save_model(self, filename):
+        with open(filename, 'wb') as file:
+            pickle.dump(self.Q, file)
+
+    def load_model(self, filename):
+        with open(filename, 'rb') as file:
+            self.Q = pickle.load(file)
+
     def run(self, episodes):
         for episode in range(episodes):
             self.current_state = self.preprocess_state(self.env.reset())
@@ -65,6 +72,10 @@ class QLearningAgent:
                 self.current_state = next_state
                 total_reward += reward
 
+                if done and 'flag_get' in info and info['flag_get']:
+                    # Save the model when Mario reaches the flag
+                    self.save_model('mario_model.pkl')
+
                 # time.sleep(self.frame_delay)
 
             print(f"Episode {episode + 1}: Total Reward = {total_reward}")
@@ -76,4 +87,11 @@ if __name__ == "__main__":
     env = gym.make("SuperMarioBros-v0",
                    apply_api_compatibility=True, render_mode="human")
     mario_agent = QLearningAgent(env)
-    mario_agent.run(episodes=2000)
+
+    try:
+        mario_agent.load_model('mario_model.pkl')
+        print("Loaded saved model.")
+    except FileNotFoundError:
+        print("No saved model found.")
+
+    mario_agent.run(episodes=100)
