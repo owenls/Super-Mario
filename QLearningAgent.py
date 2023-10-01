@@ -96,43 +96,67 @@ class QLearningAgent:
     # Called to run the environment.
 
     def run(self, episodes):
-        for episode in range(episodes):
-            self.current_state = self.preprocess_state(self.env.reset())
-            total_reward = 0
-            life_reward = 0
+        # Initialize episode number
+        episode = 1
 
-            self.done = False
-            episode_done = False  # Variable to track the end of the current episode
-            while not self.done:
-                action = self.select_action(self.current_state)
-                obs, reward, terminated, truncated, info = self.env.step(
-                    action)
-                obs = self.preprocess_state(obs)
+        # Check if the log file exists and has data
+        try:
+            with open('episode_log.txt', 'r') as log_file:
+                lines = log_file.readlines()
+                if lines:
+                    # Get the last line and extract the episode number
+                    last_line = lines[-1].strip()
+                    last_episode = int(last_line.split(':')[0].split(' ')[
+                                       1])  # Extract the episode number
+                    episode = last_episode + 1
+        except FileNotFoundError:
+            pass  # The log file doesn't exist, start from episode 1
 
-                self.update_q_table(self.current_state,
-                                    action, reward, obs, info)
+        with open('episode_log.txt', 'a') as log_file:
+            for _ in range(episode, episode + episodes):
+                self.current_state = self.preprocess_state(self.env.reset())
+                total_reward = 0
+                life_reward = 0
 
-                self.current_state = obs
-                total_reward += reward
-                life_reward += reward
+                self.done = False
+                episode_done = False  # Variable to track the end of the current episode
+                while not self.done:
+                    action = self.select_action(self.current_state)
+                    obs, reward, terminated, truncated, info = self.env.step(
+                        action)
+                    obs = self.preprocess_state(obs)
 
-                # Check if Mario reaches the flag
-                if info['flag_get']:
-                    print("MARIO GOT FLAG!")
-                    episode_done = True  # Set the episode_done flag
+                    self.update_q_table(self.current_state,
+                                        action, reward, obs, info)
 
-                self.done = terminated or truncated
+                    self.current_state = obs
+                    total_reward += reward
+                    life_reward += reward
 
-                # End of the episode
-                if episode_done:
-                    self.save_model(
-                        'mario_model_episode_{}.pkl'.format(episode + 1))
-                    break
-            if episode_done:
-                sys.exit
+                    # Check if Mario reaches the flag
+                    if info['flag_get']:
+                        episode_done = True
 
-            print(
-                f"Episode {episode + 1}: Total Reward = {total_reward} | x_pos = {info['x_pos']} | completed: {episode_done}")
+                    self.done = terminated or truncated
+
+                    # End of the episode
+                    if episode_done:
+                        self.save_model(
+                            'mario_model_episode_{}.pkl'.format(episode))
+
+                # Write to File
+                log_file.write(
+                    f"Episode {episode}: Total Reward = {total_reward} | x_pos = {info['x_pos']} | completed: {episode_done}\n")
+
+                # Write Exact same thing to terminal so we can watch it - file often doesnt update live
+                print(
+                    f"Episode {episode}: Total Reward = {total_reward} | x_pos = {info['x_pos']} | completed: {episode_done}")
+
+                self.save_model('latest_model.pkl')
+                episode += 1
+
+        # Close the log file after all episodes are completed
+        log_file.close()
 
         self.save_model('mario_model_final.pkl')
         self.env.close()
@@ -144,10 +168,10 @@ if __name__ == "__main__":
     mario_agent = QLearningAgent(env)
 
     try:
-        model_to_load = 'mario_model_episode_52.pkl'
+        model_to_load = 'latest_model.pkl'
         mario_agent.load_model(model_to_load)
         print(f"\n\nLOADED -- {model_to_load} --\n\n")
     except FileNotFoundError:
         print("No saved model found.")
 
-    mario_agent.run(episodes=500)
+    mario_agent.run(episodes=1000)
