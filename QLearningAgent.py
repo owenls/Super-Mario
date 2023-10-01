@@ -27,17 +27,18 @@ class QLearningAgent:
         # Discount Factor (gamma) is 0-1. Approaching 0 means the agent focuses mostly
         # short term success (sorta greedy). Approaching 1 means the agent values
         # future rewards almost as much as immediate rewards.
-        self.discount_factor = 0.9
+        self.discount_factor = 0.4
 
         # Epsilon is 0-1. It controls the exploration-exploitation trade-off.
         # Close to zero means the agent mostly exploits its current knowledge.
         # Close to 1 means he chooses more random actions to try discover better strategies.
         # High epsilon values good when the agent doesn't know much about the environment.
-        self.epsilon = 0.1
+        self.epsilon = 0.3
 
         self.frame_delay = 0.02  # This is just the delay used to slow down the frames
         self.current_state = None
         self.done = True
+        self.prev_x_pos = 0
 
     # Preprocesses the raw 'obs' data from the environment to create a hashable representation.
     def preprocess_state(self, obs):
@@ -62,13 +63,21 @@ class QLearningAgent:
     # Updates the Q-value for the (state, action) pair in the Q-table using the
     # Q-learning update rule. It also incorporates the observed reward and the best
     # estimate of future rewards.
-    def update_q_table(self, state, action, reward, obs):
+    def update_q_table(self, state, action, reward, obs, info):
         if state not in self.Q:
             self.Q[state] = np.zeros(self.action_space_size)
         if obs not in self.Q:
             self.Q[obs] = np.zeros(self.action_space_size)
 
         max_next_action_value = np.max(self.Q[obs])
+
+        # Calculate the change in x_pos
+        current_x_pos = info['x_pos']
+        x_pos_change = current_x_pos - self.prev_x_pos
+
+        # Provide a reward based on the change in x_pos
+        reward += x_pos_change * 0.3
+
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
             self.learning_rate * \
             (reward + self.discount_factor * max_next_action_value)
@@ -84,32 +93,42 @@ class QLearningAgent:
             self.Q = pickle.load(file)
 
     # Called to run the environment.
+
     def run(self, episodes):
         for episode in range(episodes):
             self.current_state = self.preprocess_state(self.env.reset())
             total_reward = 0
+            life_reward = 0
 
             self.done = False
+            episode_done = False  # Variable to track the end of the current episode
             while not self.done:
                 action = self.select_action(self.current_state)
                 obs, reward, terminated, truncated, info = self.env.step(
                     action)
                 obs = self.preprocess_state(obs)
 
-                self.update_q_table(
-                    self.current_state, action, reward, obs)
+                self.update_q_table(self.current_state,
+                                    action, reward, obs, info)
 
                 self.current_state = obs
                 total_reward += reward
+                life_reward += reward
 
-                # If mario reaches the flag then I want to save that Q table data.
+                # Check if Mario reaches the flag
+                if info['flag_get']:
+                    print("MARIO GOT FLAG! Q Table Data:")
+                    episode_done = True  # Set the episode_done flag
+
                 self.done = terminated or truncated
-                if self.done and 'flag_get' in info and info['flag_get']:
-                    self.save_model('mario_model.pkl')
 
-                # time.sleep(self.frame_delay) #Use to Slow down frames.
+                # End of the episode
+                if episode_done:
+                    self.save_model(
+                        'mario_model_episode_{}.pkl'.format(episode + 1))
 
-            print(f"Episode {episode + 1}: Total Reward = {total_reward}")
+            print(
+                f"Episode {episode + 1}: Total Reward = {total_reward} | x_pos = {info['x_pos']}")
 
         self.env.close()
 
@@ -120,9 +139,10 @@ if __name__ == "__main__":
     mario_agent = QLearningAgent(env)
 
     try:
-        mario_agent.load_model('mario_model.pkl')
-        print("Loaded saved model.")
+        model_to_load = 'mario_model_episode_7.pkl'
+        mario_agent.load_model(model_to_load)
+        print(f"LOADED -- {model_to_load} --")
     except FileNotFoundError:
         print("No saved model found.")
 
-    mario_agent.run(episodes=100)
+    mario_agent.run(episodes=200)
