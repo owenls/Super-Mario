@@ -1,5 +1,6 @@
 # Author 1: Owen Smith (22957291)
 # Author 2: John Lumagbas (23419439)
+import sys
 import time
 import random
 import numpy as np
@@ -33,7 +34,7 @@ class QLearningAgent:
         # Close to zero means the agent mostly exploits its current knowledge.
         # Close to 1 means he chooses more random actions to try discover better strategies.
         # High epsilon values good when the agent doesn't know much about the environment.
-        self.epsilon = 0.3
+        self.epsilon = 0.2
 
         self.frame_delay = 0.02  # This is just the delay used to slow down the frames
         self.current_state = None
@@ -117,7 +118,7 @@ class QLearningAgent:
 
                 # Check if Mario reaches the flag
                 if info['flag_get']:
-                    print("MARIO GOT FLAG! Q Table Data:")
+                    print("MARIO GOT FLAG!")
                     episode_done = True  # Set the episode_done flag
 
                 self.done = terminated or truncated
@@ -126,10 +127,14 @@ class QLearningAgent:
                 if episode_done:
                     self.save_model(
                         'mario_model_episode_{}.pkl'.format(episode + 1))
+                    break
+            if episode_done:
+                sys.exit
 
             print(
-                f"Episode {episode + 1}: Total Reward = {total_reward} | x_pos = {info['x_pos']}")
+                f"Episode {episode + 1}: Total Reward = {total_reward} | x_pos = {info['x_pos']} | completed: {episode_done}")
 
+        self.save_model('mario_model_final.pkl')
         self.env.close()
 
 
@@ -139,10 +144,10 @@ if __name__ == "__main__":
     mario_agent = QLearningAgent(env)
 
     try:
-        model_to_load = 'mario_model_episode_7.pkl'
+        model_to_load = 'mario_model_episode_52.pkl'
         mario_agent.load_model(model_to_load)
-        print(f"LOADED -- {model_to_load} --")
+        print(f"\n\nLOADED -- {model_to_load} --\n\n")
     except FileNotFoundError:
         print("No saved model found.")
 
-    mario_agent.run(episodes=200)
+    mario_agent.run(episodes=500)
