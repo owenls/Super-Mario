@@ -1,3 +1,5 @@
+# Author 1: Owen Smith (22957291)
+# Author 2: John Lumagbas (23419439)
 import time
 from nes_py.wrappers import JoypadSpace
 import gym_super_mario_bros
@@ -17,6 +19,7 @@ class RuleBasedMarioAgent:
         self.env.reset()
 
         self.goomba = [228, 92, 16]
+        self.level2Goomba = [0, 136, 136]
         self.pipe = [184, 248, 24]
         self.gold_box = [252, 160, 68]
         self.sky = [104, 136, 252]
@@ -33,6 +36,13 @@ class RuleBasedMarioAgent:
     def shouldJump(self, obs, info):
         # CHECK IF GOOMBA NEARBY
         target_color = self.goomba
+        half_obs = obs[202][125:155]
+        is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
+        if is_goomba_present:
+            return True
+
+        # CHECK FOR GOOMBA ON LEVEL 2 (Different Colour)
+        target_color = self.level2Goomba
         half_obs = obs[202][125:165]
         is_goomba_present = np.any(np.all(half_obs == target_color, axis=-1))
         if is_goomba_present:
