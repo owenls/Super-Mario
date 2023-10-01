@@ -139,11 +139,6 @@ class QLearningAgent:
 
                     self.done = terminated or truncated
 
-                    # End of the episode
-                    if episode_done:
-                        self.save_model(
-                            'mario_model_episode_{}.pkl'.format(episode))
-
                 # Write to File
                 log_file.write(
                     f"Episode {episode}: Total Reward = {total_reward} | x_pos = {info['x_pos']} | completed: {episode_done}\n")
