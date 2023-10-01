@@ -399,3 +399,4 @@ Episode 398: Total Reward = 3011.0 | x_pos = 1125 | completed: False
 Episode 399: Total Reward = 1616.0 | x_pos = 1138 | completed: False
 Episode 400: Total Reward = 1158.0 | x_pos = 298 | completed: False
 Episode 401: Total Reward = 1944.0 | x_pos = 1411 | completed: False
+Episode 402: Total Reward = 1388.0 | x_pos = 1136 | completed: False
