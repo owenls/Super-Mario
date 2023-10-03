@@ -40,6 +40,8 @@ class QLearningAgent:
         self.current_state = None
         self.done = True
         self.prev_x_pos = 0
+        self.min_jump_duration = 1
+        self.max_jump_duration = 20
 
     # Preprocesses the raw 'obs' data from the environment to create a hashable representation.
     def preprocess_state(self, obs):
