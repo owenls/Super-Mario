@@ -24,7 +24,7 @@ class QLearningAgent:
         """ Q-Learning Control Explained (notes for self really)"""
         # Learning rate (alpha) is 0-1. Approaching 0 is slower but smoother,
         # towards 1 means the agent might shift between different Q-value estimates.
-        self.learning_rate = 0.5
+        self.learning_rate = 1
 
         # Discount Factor (gamma) is 0-1. Approaching 0 means the agent focuses mostly
         # short term success (sorta greedy). Approaching 1 means the agent values
@@ -35,7 +35,7 @@ class QLearningAgent:
         # Close to zero means the agent mostly exploits its current knowledge.
         # Close to 1 means he chooses more random actions to try discover better strategies.
         # High epsilon values good when the agent doesn't know much about the environment.
-        self.epsilon = 0.2
+        self.epsilon = 1
 
         self.frame_delay = 1  # This is just the delay used to slow down the frames
         self.current_state = None
@@ -43,7 +43,13 @@ class QLearningAgent:
         self.current_episode = 0
         self.max_life = max_life  # Maximum number of lives Mario can have
         self.life_count = max_life  # Initialize the life count
-
+        
+        self.fall_penalty = 100  # Penalty for falling
+        self.stuck_penalty = 50  # Penalty for getting stuck
+        self.consecutive_stuck_frames = 0
+        self.previous_x_pos = None
+        self.fall_penalty = 100  # Penalty for falling
+        self.stuck_penalty = 500  # Penalty for getting stuck
     # Preprocesses the raw 'obs' data from the environment to create a hashable representation.
     def preprocess_state(self, obs):
         return tuple(obs[0].flatten())
@@ -71,17 +77,64 @@ class QLearningAgent:
     # Updates the Q-value for the (state, action) pair in the Q-table using the
     # Q-learning update rule. It also incorporates the observed reward and the best
     # estimate of future rewards.
-    def update_q_table(self, state, action, reward, obs):
+    def update_q_table(self, state, action, reward, obs, done, info):
         if state not in self.Q:
             self.Q[state] = np.zeros(self.action_space_size)
         if obs not in self.Q:
             self.Q[obs] = np.zeros(self.action_space_size)
 
+        # Define your rewards and penalties
+        jump_obstacle_reward = 10  # Positive reward for jumping over obstacles
+        jump_enemy_reward = 20  # Positive reward for jumping on enemies (defeating them)
+        collect_coin_reward = 5  # Positive reward for collecting coins
+        level_complete_reward = 1000  # Substantial positive reward for completing the level
+
+        time_penalty = 0.1  # Penalty for taking too long to complete
+        stuck_penalty = 1  # Penalty for getting stuck
+        death_penalty = 100  # Substantial penalty for dying
+        jump_fail_penalty = 30
+        # Apply rewards and penalties based on the game events
+        if reward > 0:
+            if reward == jump_obstacle_reward:
+                reward += jump_obstacle_reward
+            elif reward == jump_enemy_reward:
+                reward += jump_enemy_reward
+            elif reward == collect_coin_reward:
+                reward += collect_coin_reward
+            elif reward == level_complete_reward:
+                reward += level_complete_reward
+            
+
+        elif done:
+            if 'time' in info and info['time'] == 0:
+                reward -= time_penalty * self.frame_delay
+            elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+                reward -= stuck_penalty  # Apply stuck penalty if Mario gets stuck
+            elif 'life' in info and info['life'] < self.life_count:
+                reward -= self.fall_penalty
+            elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+                reward -= jump_fail_penalty
+
+        elif reward == 0 and not done:
+            reward -= time_penalty * self.frame_delay
+
+        # Update consecutive stuck frames and check for stuck penalty
+        if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+            self.consecutive_stuck_frames += 1
+        else:
+            self.consecutive_stuck_frames = 0
+        stuck_threshold = 5
+        if self.consecutive_stuck_frames >= stuck_threshold:
+            reward -= stuck_penalty  # Apply additional stuck penalty if Mario remains stuck
+
+        # Q-learning update rule
         max_next_action_value = np.max(self.Q[obs])
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
             self.learning_rate * \
             (reward + self.discount_factor * max_next_action_value)
 
+        # Update previous_x_pos for the next iteration
+        self.previous_x_pos = info.get('x_pos', None)
     # Called to save a model - pretty much just when we reach the flag
     def save_model(self, filename):
         with open(filename, 'wb') as file:
@@ -92,26 +145,26 @@ class QLearningAgent:
         with open(filename, 'rb') as file:
             self.Q = pickle.load(file)
 
-    # Called to run the environment.
     def run(self, episodes):
         for episode in range(episodes):
             self.current_state = self.preprocess_state(self.env.reset())
             total_reward = 0
-            self.life_count = self.max_life  # Reset life count at the start of each episode
+            self.life_count = 1  # Set life count to 1 for each episode
             completed = False  # Flag to track if the level was completed in this episode
 
-            while self.life_count > 0:  # Run the episode until Mario runs out of lives
+            # Run the episode until Mario loses a life or completes it
+            while self.life_count > 0:
                 if self.done:  # Check if the episode is done; if so, reset the environment
                     self.current_state = self.preprocess_state(self.env.reset())
                     self.done = False
 
                 # Mario starts a new life
-                while not self.done:  # Run the episode until Mario loses a life or completes it
-                    action = self.select_action(self.current_state,episode)
+                while not self.done:
+                    action = self.select_action(self.current_state, episode)
                     obs, reward, terminated, truncated, info = self.env.step(action)
                     obs = self.preprocess_state(obs)
 
-                    self.update_q_table(self.current_state, action, reward, obs)
+                    self.update_q_table(self.current_state, action, reward, obs, self.done, info)
 
                     self.current_state = obs
                     total_reward += reward
@@ -119,7 +172,7 @@ class QLearningAgent:
                     # If Mario loses a life, end the episode
                     if 'life' in info and info['life'] < self.life_count:
                         self.done = True
-                        self.life_count -= 1  # Decrease the life count
+                        self.life_count = 0  # Decrease the life count
                         break
 
                     # If Mario completes the level, end the episode
@@ -132,7 +185,7 @@ class QLearningAgent:
                     # Uncomment the line below to slow down frames (optional)
                     # time.sleep(self.frame_delay)
 
-            print(f"Episode {episode + 1}: Total Reward = {total_reward}, Position = {info.get('x_pos', 'N/A')}, Completed: {completed}")
+            print(f"Episode {episode + 1}: Total Reward = {total_reward}, Position = {info.get('x_pos')}, Completed: {completed}")
 
         plt.plot(total_reward)
         plt.xlabel('Episode')
@@ -155,4 +208,4 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print("No saved model found.")
 
-    mario_agent.run(episodes=100)
+    mario_agent.run(episodes=10000)
