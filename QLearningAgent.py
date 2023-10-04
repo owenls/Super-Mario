@@ -29,13 +29,13 @@ class QLearningAgent:
         # Discount Factor (gamma) is 0-1. Approaching 0 means the agent focuses mostly
         # short term success (sorta greedy). Approaching 1 means the agent values
         # future rewards almost as much as immediate rewards.
-        self.discount_factor = 1
+        self.discount_factor = 0.5
 
         # Epsilon is 0-1. It controls the exploration-exploitation trade-off.
         # Close to zero means the agent mostly exploits its current knowledge.
         # Close to 1 means he chooses more random actions to try discover better strategies.
         # High epsilon values good when the agent doesn't know much about the environment.
-        self.epsilon = 1
+        self.epsilon = 0.04
 
         self.frame_delay = 1  # This is just the delay used to slow down the frames
         self.current_state = None
@@ -45,11 +45,11 @@ class QLearningAgent:
         self.life_count = max_life  # Initialize the life count
         
         self.fall_penalty = 100  # Penalty for falling
-        self.stuck_penalty = 50  # Penalty for getting stuck
+
         self.consecutive_stuck_frames = 0
         self.previous_x_pos = None
         self.fall_penalty = 100  # Penalty for falling
-        self.stuck_penalty = 500  # Penalty for getting stuck
+        self.stuck_penalty = 1000  # Penalty for getting stuck
     # Preprocesses the raw 'obs' data from the environment to create a hashable representation.
     def preprocess_state(self, obs):
         return tuple(obs[0].flatten())
@@ -60,7 +60,7 @@ class QLearningAgent:
     
     def select_action(self, obs, episode):
         # Increase exploration at the beginning, gradually decrease it over episodes
-        epsilon = max(0.01, 0.2 - 0.002 * episode)  # Starts with epsilon=0.2, decreases slowly
+        epsilon = max(0.01, 0  * episode)  # Starts with epsilon=0.2, decreases slowly
         
         if random.uniform(0, 1) < epsilon:
             return random.randint(0, self.action_space_size - 1)
@@ -84,15 +84,15 @@ class QLearningAgent:
             self.Q[obs] = np.zeros(self.action_space_size)
 
         # Define your rewards and penalties
-        jump_obstacle_reward = 10  # Positive reward for jumping over obstacles
-        jump_enemy_reward = 20  # Positive reward for jumping on enemies (defeating them)
+        jump_obstacle_reward = 1000 # Positive reward for jumping over obstacles
+        jump_enemy_reward = 900  # Positive reward for jumping on enemies (defeating them)
         collect_coin_reward = 5  # Positive reward for collecting coins
-        level_complete_reward = 1000  # Substantial positive reward for completing the level
-
+        level_complete_reward = 10000  # Substantial positive reward for completing the level
+        unnecessary_jump_penalty = 600
         time_penalty = 0.1  # Penalty for taking too long to complete
-        stuck_penalty = 1  # Penalty for getting stuck
-        death_penalty = 100  # Substantial penalty for dying
-        jump_fail_penalty = 30
+        stuck_penalty = 400  # Penalty for getting stuck
+        death_penalty = 5000  # Substantial penalty for dying
+        jump_fail_penalty = 800
         # Apply rewards and penalties based on the game events
         if reward > 0:
             if reward == jump_obstacle_reward:
@@ -126,7 +126,7 @@ class QLearningAgent:
         stuck_threshold = 5
         if self.consecutive_stuck_frames >= stuck_threshold:
             reward -= stuck_penalty  # Apply additional stuck penalty if Mario remains stuck
-
+        
         # Q-learning update rule
         max_next_action_value = np.max(self.Q[obs])
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
@@ -178,7 +178,9 @@ class QLearningAgent:
                     # If Mario completes the level, end the episode
                     if 'flag_get' in info and info['flag_get']:
                         self.done = True
-                        self.save_model('mario_model.pkl')
+                        # Save model with episode number appended to the file name
+                        model_filename = f'mario_model_episode_{episode + 1}.pkl'
+                        self.save_model(model_filename)
                         completed = True
                         break
 
@@ -203,7 +205,7 @@ if __name__ == "__main__":
     mario_agent = QLearningAgent(env)
 
     try:
-        mario_agent.load_model('mario_model.pkl')
+        mario_agent.load_model('mario_model_ep8.pkl')
         print("Loaded saved model.")
     except FileNotFoundError:
         print("No saved model found.")
