@@ -23,12 +23,12 @@ class QLearningAgent:
         """ Q-Learning Control Explained (notes for self really)"""
         # Learning rate (alpha) is 0-1. Approaching 0 is slower but smoother,
         # towards 1 means the agent might shift between different Q-value estimates.
-        self.learning_rate = 0.1
+        self.learning_rate = 0.25
 
         # Discount Factor (gamma) is 0-1. Approaching 0 means the agent focuses mostly
         # short term success (sorta greedy). Approaching 1 means the agent values
         # future rewards almost as much as immediate rewards.
-        self.discount_factor = 0.4
+        self.discount_factor = 0.3
 
         # Epsilon is 0-1. It controls the exploration-exploitation trade-off.
         # Close to zero means the agent mostly exploits its current knowledge.
@@ -40,8 +40,8 @@ class QLearningAgent:
         self.current_state = None
         self.done = True
         self.prev_x_pos = 0
-        self.min_jump_duration = 1
-        self.max_jump_duration = 20
+        self.consecutive_jump_reward = 0.1
+        self.prev_action = None
 
     # Preprocesses the raw 'obs' data from the environment to create a hashable representation.
     def preprocess_state(self, obs):
@@ -81,9 +81,16 @@ class QLearningAgent:
         # Provide a reward based on the change in x_pos
         reward += x_pos_change * 0.3
 
+        # If the action is a jump action and the previous action was also a jump, provide a consecutive jump reward
+        if action == 2 and self.prev_action == 2:
+            reward += self.consecutive_jump_reward
+
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
             self.learning_rate * \
             (reward + self.discount_factor * max_next_action_value)
+
+        # Update the previous action
+        self.prev_action = action
 
     # Called to save a model - pretty much just when we reach the flag
     def save_model(self, filename):
@@ -124,20 +131,38 @@ class QLearningAgent:
                 episode_done = False  # Variable to track the end of the current episode
                 while not self.done:
                     action = self.select_action(self.current_state)
-                    obs, reward, terminated, truncated, info = self.env.step(
-                        action)
-                    obs = self.preprocess_state(obs)
+                    if action == 2:
+                        for _ in range(19):
+                            if not terminated and not truncated:
+                                obs, reward, terminated, truncated, info = self.env.step(
+                                    action)
+                                obs = self.preprocess_state(obs)
 
-                    self.update_q_table(self.current_state,
-                                        action, reward, obs, info)
+                                self.update_q_table(self.current_state,
+                                                    action, reward, obs, info)
 
-                    self.current_state = obs
-                    total_reward += reward
-                    life_reward += reward
+                                self.current_state = obs
+                                total_reward += reward
+                                life_reward += reward
 
-                    # Check if Mario reaches the flag
-                    if info['flag_get']:
-                        episode_done = True
+                                # Check if Mario reaches the flag
+                                if info['flag_get']:
+                                    episode_done = True
+                    else:
+                        obs, reward, terminated, truncated, info = self.env.step(
+                            action)
+                        obs = self.preprocess_state(obs)
+
+                        self.update_q_table(self.current_state,
+                                            action, reward, obs, info)
+
+                        self.current_state = obs
+                        total_reward += reward
+                        life_reward += reward
+
+                        # Check if Mario reaches the flag
+                        if info['flag_get']:
+                            episode_done = True
 
                     self.done = terminated or truncated
 
