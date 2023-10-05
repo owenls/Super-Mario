@@ -1,5 +1,3 @@
-# Author 1: Owen Smith (22957291)
-# Author 2: John Lumagbas (23419439)
 import time
 import random
 import numpy as np
@@ -10,204 +8,140 @@ import gym
 import pickle
 import matplotlib.pyplot as plt
 
-
-# Class for the Q-Learning Implementation of the Mario Agent.
-
-
 class QLearningAgent:
     def __init__(self, env, max_life=3):
         self.env = JoypadSpace(env, COMPLEX_MOVEMENT)
         self.state_space_size = self.calculate_state_space_size()
-        self.action_space_size = 6  # Number of actions availible
-        self.Q = {}  # This will store the Q table data.
+        self.action_space_size = 6  # Number of actions available
+        self.Q = {}  # Q table
 
-        """ Q-Learning Control Explained (notes for self really)"""
-        # Learning rate (alpha) is 0-1. Approaching 0 is slower but smoother,
-        # towards 1 means the agent might shift between different Q-value estimates.
-        self.learning_rate = 1
+        self.learning_rate = 0.78
+        self.discount_factor = 0.89
+        self.epsilon = 0.08
 
-        # Discount Factor (gamma) is 0-1. Approaching 0 means the agent focuses mostly
-        # short term success (sorta greedy). Approaching 1 means the agent values
-        # future rewards almost as much as immediate rewards.
-        self.discount_factor = 0.5
-
-        # Epsilon is 0-1. It controls the exploration-exploitation trade-off.
-        # Close to zero means the agent mostly exploits its current knowledge.
-        # Close to 1 means he chooses more random actions to try discover better strategies.
-        # High epsilon values good when the agent doesn't know much about the environment.
-        self.epsilon = 0.04
-
-        self.frame_delay = 1  # This is just the delay used to slow down the frames
+        self.frame_delay = 1
         self.current_state = None
         self.done = True
-        self.current_episode = 0
-        self.max_life = max_life  # Maximum number of lives Mario can have
-        self.life_count = max_life  # Initialize the life count
-        
-        self.fall_penalty = 100  # Penalty for falling
-
+        self.max_life = max_life
+        self.life_count = max_life
         self.consecutive_stuck_frames = 0
         self.previous_x_pos = None
-        self.fall_penalty = 100  # Penalty for falling
-        self.stuck_penalty = 1000  # Penalty for getting stuck
-    # Preprocesses the raw 'obs' data from the environment to create a hashable representation.
+
     def preprocess_state(self, obs):
         return tuple(obs[0].flatten())
 
-    # Chooses the next action
-    # It implements the epsilon-greedy strategy - balances exploration (random actions)
-    # and exploitation (best-known actions) based on the value of epsilon.
-    
-    def select_action(self, obs, episode):
-        # Increase exploration at the beginning, gradually decrease it over episodes
-        epsilon = max(0.01, 0  * episode)  # Starts with epsilon=0.2, decreases slowly
-        
-        if random.uniform(0, 1) < epsilon:
+    def select_action(self, obs):
+        if random.uniform(0, 1) < self.epsilon:
             return random.randint(0, self.action_space_size - 1)
         else:
             if obs not in self.Q:
                 self.Q[obs] = np.zeros(self.action_space_size)
             return np.argmax(self.Q[obs])
-        
-    # Calculate the size of the state space based on the observation space shape
-    # Without this i didn't know how large the space was. Was getting KeyError
+
     def calculate_state_space_size(self):
         return np.prod(self.env.observation_space.shape)
 
-    # Updates the Q-value for the (state, action) pair in the Q-table using the
-    # Q-learning update rule. It also incorporates the observed reward and the best
-    # estimate of future rewards.
     def update_q_table(self, state, action, reward, obs, done, info):
+        death_penalty = -500  # Penalty for dying
+        fall_penalty = -600  # Penalty for falling into a gap
+        goomba_kill_reward = 200
+        turtle_kill_reward = 300
         if state not in self.Q:
             self.Q[state] = np.zeros(self.action_space_size)
         if obs not in self.Q:
             self.Q[obs] = np.zeros(self.action_space_size)
 
-        # Define your rewards and penalties
-        jump_obstacle_reward = 1000 # Positive reward for jumping over obstacles
-        jump_enemy_reward = 900  # Positive reward for jumping on enemies (defeating them)
-        collect_coin_reward = 5  # Positive reward for collecting coins
-        level_complete_reward = 10000  # Substantial positive reward for completing the level
-        unnecessary_jump_penalty = 600
-        time_penalty = 0.1  # Penalty for taking too long to complete
-        stuck_penalty = 400  # Penalty for getting stuck
-        death_penalty = 5000  # Substantial penalty for dying
-        jump_fail_penalty = 800
-        # Apply rewards and penalties based on the game events
-        if reward > 0:
-            if reward == jump_obstacle_reward:
-                reward += jump_obstacle_reward
-            elif reward == jump_enemy_reward:
-                reward += jump_enemy_reward
-            elif reward == collect_coin_reward:
-                reward += collect_coin_reward
-            elif reward == level_complete_reward:
-                reward += level_complete_reward
-            
+        if done and 'x_pos' in info:
+            reward += info['x_pos'] * 10
+            if 'flag_get' in info and info['flag_get']:
+                reward += 100000
+        if done and 'life' in info and info['life'] < self.life_count:
+            reward -= death_penalty
+        if 'enemy' in info and info['enemy'] == 'Goomba':
+            reward += goomba_kill_reward
+        if 'enemy' in info and info['enemy'] == 'Turtle':
+            reward += turtle_kill_reward
 
-        elif done:
-            if 'time' in info and info['time'] == 0:
-                reward -= time_penalty * self.frame_delay
-            elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-                reward -= stuck_penalty  # Apply stuck penalty if Mario gets stuck
-            elif 'life' in info and info['life'] < self.life_count:
-                reward -= self.fall_penalty
-            elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-                reward -= jump_fail_penalty
-
-        elif reward == 0 and not done:
-            reward -= time_penalty * self.frame_delay
-
-        # Update consecutive stuck frames and check for stuck penalty
-        if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-            self.consecutive_stuck_frames += 1
-        else:
-            self.consecutive_stuck_frames = 0
-        stuck_threshold = 5
-        if self.consecutive_stuck_frames >= stuck_threshold:
-            reward -= stuck_penalty  # Apply additional stuck penalty if Mario remains stuck
-        
-        # Q-learning update rule
+       
+        if done and 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+            reward -= fall_penalty
+            reward -= death_penalty
         max_next_action_value = np.max(self.Q[obs])
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
             self.learning_rate * \
             (reward + self.discount_factor * max_next_action_value)
 
-        # Update previous_x_pos for the next iteration
         self.previous_x_pos = info.get('x_pos', None)
-    # Called to save a model - pretty much just when we reach the flag
-    def save_model(self, filename):
-        with open(filename, 'wb') as file:
-            pickle.dump(self.Q, file)
 
-    # Called to load an existing model. The existence check happens at the point it was called.
-    def load_model(self, filename):
-        with open(filename, 'rb') as file:
-            self.Q = pickle.load(file)
+    def run(self, steps):
+        highest_reward = 0  # Variable to store the highest reward achieved
+        for step in range(steps):
+            if self.done:
+                self.current_state = self.preprocess_state(self.env.reset())
+                self.done = False
 
-    def run(self, episodes):
-        for episode in range(episodes):
-            self.current_state = self.preprocess_state(self.env.reset())
-            total_reward = 0
-            self.life_count = 1  # Set life count to 1 for each episode
-            completed = False  # Flag to track if the level was completed in this episode
+            action = self.select_action(self.current_state)
+            obs, reward, terminated, truncated, info = self.env.step(action)
+            obs = self.preprocess_state(obs)
 
-            # Run the episode until Mario loses a life or completes it
-            while self.life_count > 0:
-                if self.done:  # Check if the episode is done; if so, reset the environment
-                    self.current_state = self.preprocess_state(self.env.reset())
-                    self.done = False
+            self.update_q_table(self.current_state, action, reward, obs, self.done, info)
+            self.current_state = obs
+            self.done = terminated or truncated
 
-                # Mario starts a new life
-                while not self.done:
-                    action = self.select_action(self.current_state, episode)
-                    obs, reward, terminated, truncated, info = self.env.step(action)
-                    obs = self.preprocess_state(obs)
+            if self.done:
+                self.life_count -= 1
+                if self.life_count <= 0:
+                    self.done = True
+                    self.life_count = self.max_life
 
-                    self.update_q_table(self.current_state, action, reward, obs, self.done, info)
+                total_reward = np.sum(list(self.Q.values()))
 
-                    self.current_state = obs
-                    total_reward += reward
+                # Save model if the agent achieves a new highest reward
+                if total_reward > highest_reward:
+                    highest_reward = total_reward
+                    model_filename = f'models/mario_model_{step}_reward_{total_reward}.pkl'
+                    self.save_model(model_filename)
 
-                    # If Mario loses a life, end the episode
-                    if 'life' in info and info['life'] < self.life_count:
-                        self.done = True
-                        self.life_count = 0  # Decrease the life count
-                        break
+            if step % 100 == 0:
+                print(f"Step: {step}, Total Reward: {np.sum(list(self.Q.values()))}")
 
-                    # If Mario completes the level, end the episode
-                    if 'flag_get' in info and info['flag_get']:
-                        self.done = True
-                        # Save model with episode number appended to the file name
-                        model_filename = f'mario_model_episode_{episode + 1}.pkl'
-                        self.save_model(model_filename)
-                        completed = True
-                        break
-
-                    # Uncomment the line below to slow down frames (optional)
-                    # time.sleep(self.frame_delay)
-
-            print(f"Episode {episode + 1}: Total Reward = {total_reward}, Position = {info.get('x_pos')}, Completed: {completed}")
-
-        plt.plot(total_reward)
-        plt.xlabel('Episode')
+        plt.plot(list(self.Q.values()))
+        plt.xlabel('Step')
         plt.ylabel('Total Reward')
-        plt.title('Rewards over Episodes')
+        plt.title('Rewards over Steps')
         plt.show()
 
         self.env.close()
 
+    def load_model(self, filename):
+        try:
+            with open(filename, 'rb') as file:
+                self.Q = pickle.load(file)
+                print(f"Loaded model from {filename}")
+        except FileNotFoundError:
+            print("No saved model found.")
 
+    def save_model(self, filename):
+        with open(filename, 'wb') as file:
+            pickle.dump(self.Q, file)
+            print(f"Model saved as {filename}")
 
 if __name__ == "__main__":
-    env = gym.make("SuperMarioBros-v0",
-                   apply_api_compatibility=True, render_mode="human")
+    env = gym.make("SuperMarioBros-v0", apply_api_compatibility=True, render_mode="human")
     mario_agent = QLearningAgent(env)
 
     try:
-        mario_agent.load_model('mario_model_ep8.pkl')
+        mario_agent.load_model('model/mario_model_42384_reward_949.1017931789977.pkl')
         print("Loaded saved model.")
     except FileNotFoundError:
         print("No saved model found.")
 
-    mario_agent.run(episodes=10000)
+    num_steps = 100000  # Set the number of steps for the run
+    mario_agent.run(num_steps)
+    # Generate and display the graph comparing rewards to steps
+    steps_range = range(0, num_steps + 1, 100)  # Adjust the step interval for the x-axis
+    plt.plot(steps_range, [np.sum(list(mario_agent.Q.values())[:step]) for step in steps_range])
+    plt.xlabel('Steps')
+    plt.ylabel('Total Reward')
+    plt.title(f'Graph of Run with {num_steps} Steps')
+    plt.show()
