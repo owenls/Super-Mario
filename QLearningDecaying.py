@@ -1,3 +1,4 @@
+# EPSILON DECAYING VERSION
 import time
 import random
 import numpy as np

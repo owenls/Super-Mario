@@ -1,4 +1,3 @@
-import time
 import random
 import numpy as np
 import gym_super_mario_bros
@@ -17,7 +16,9 @@ class QLearningAgent:
 
         self.learning_rate = 0.78
         self.discount_factor = 0.89
-        self.epsilon = 0.08
+        self.epsilon = 1.0  # Initial exploration rate
+        self.min_epsilon = 0.1  # Minimum exploration rate
+        self.decay_rate = 0.0001  # Rate at which exploration rate decays
 
         self.frame_delay = 1
         self.current_state = None
@@ -43,7 +44,7 @@ class QLearningAgent:
 
     def update_q_table(self, state, action, reward, obs, done, info):
         death_penalty = -500  # Penalty for dying
-        fall_penalty = -600  # Penalty for falling into a gap
+        fall_penalty = -800  # Penalty for falling into a gap
         goomba_kill_reward = 200
         turtle_kill_reward = 300
         if state not in self.Q:
@@ -99,11 +100,17 @@ class QLearningAgent:
                 # Save model if the agent achieves a new highest reward
                 if total_reward > highest_reward:
                     highest_reward = total_reward
-                    model_filename = f'models/mario_model_{step}_reward_{total_reward}.pkl'
+                    if 'flag_get' in info and info['flag_get']:
+                        model_filename = f'models/run_2/mario_model_{step}_finish_reward_{total_reward}.pkl'
+                    else:
+                        model_filename = f'models/run_2/mario_model_{step}_reward_{total_reward}.pkl'
                     self.save_model(model_filename)
 
             if step % 100 == 0:
-                print(f"Step: {step}, Total Reward: {np.sum(list(self.Q.values()))}")
+                print(f"Step: {step}, Total Reward: {np.sum(list(self.Q.values()))}, Epsilon: {self.epsilon}")
+
+            # Decay epsilon
+            self.epsilon = max(self.min_epsilon, self.epsilon - self.decay_rate)
 
         plt.plot(list(self.Q.values()))
         plt.xlabel('Step')
@@ -131,14 +138,14 @@ if __name__ == "__main__":
     mario_agent = QLearningAgent(env)
 
     try:
-        mario_agent.load_model('model/mario_model_42384_reward_949.1017931789977.pkl')
+        mario_agent.load_model('models/mario_model_96786_reward_862.3364495865121.pkl')
         print("Loaded saved model.")
     except FileNotFoundError:
         print("No saved model found.")
 
-    num_steps = 100000  # Set the number of steps for the run
+    num_steps = 10000000  # Set the number of steps for the run
     mario_agent.run(num_steps)
-    # Generate and display the graph comparing rewards to steps
+
     steps_range = range(0, num_steps + 1, 100)  # Adjust the step interval for the x-axis
     plt.plot(steps_range, [np.sum(list(mario_agent.Q.values())[:step]) for step in steps_range])
     plt.xlabel('Steps')
