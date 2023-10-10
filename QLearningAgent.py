@@ -8,6 +8,7 @@ import gym
 import pickle
 import matplotlib.pyplot as plt
 
+
 class QLearningAgent:
     def __init__(self, env, max_life=3):
         self.env = JoypadSpace(env, COMPLEX_MOVEMENT)
@@ -62,7 +63,6 @@ class QLearningAgent:
         if 'enemy' in info and info['enemy'] == 'Turtle':
             reward += turtle_kill_reward
 
-       
         if done and 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
             reward -= fall_penalty
             reward -= death_penalty
@@ -84,7 +84,8 @@ class QLearningAgent:
             obs, reward, terminated, truncated, info = self.env.step(action)
             obs = self.preprocess_state(obs)
 
-            self.update_q_table(self.current_state, action, reward, obs, self.done, info)
+            self.update_q_table(self.current_state, action,
+                                reward, obs, self.done, info)
             self.current_state = obs
             self.done = terminated or truncated
 
@@ -103,7 +104,8 @@ class QLearningAgent:
                     self.save_model(model_filename)
 
             if step % 100 == 0:
-                print(f"Step: {step}, Total Reward: {np.sum(list(self.Q.values()))}")
+                print(
+                    f"Step: {step}, Total Reward: {np.sum(list(self.Q.values()))}")
 
         plt.plot(list(self.Q.values()))
         plt.xlabel('Step')
@@ -126,12 +128,14 @@ class QLearningAgent:
             pickle.dump(self.Q, file)
             print(f"Model saved as {filename}")
 
+
 if __name__ == "__main__":
-    env = gym.make("SuperMarioBros-v0", apply_api_compatibility=True, render_mode="human")
+    env = gym.make("SuperMarioBros-v0",
+                   apply_api_compatibility=True, render_mode="human")
     mario_agent = QLearningAgent(env)
 
     try:
-        mario_agent.load_model('model/mario_model_42384_reward_949.1017931789977.pkl')
+        mario_agent.load_model('mario_model_68718.pkl')
         print("Loaded saved model.")
     except FileNotFoundError:
         print("No saved model found.")
@@ -139,8 +143,10 @@ if __name__ == "__main__":
     num_steps = 100000  # Set the number of steps for the run
     mario_agent.run(num_steps)
     # Generate and display the graph comparing rewards to steps
-    steps_range = range(0, num_steps + 1, 100)  # Adjust the step interval for the x-axis
-    plt.plot(steps_range, [np.sum(list(mario_agent.Q.values())[:step]) for step in steps_range])
+    # Adjust the step interval for the x-axis
+    steps_range = range(0, num_steps + 1, 100)
+    plt.plot(steps_range, [
+             np.sum(list(mario_agent.Q.values())[:step]) for step in steps_range])
     plt.xlabel('Steps')
     plt.ylabel('Total Reward')
     plt.title(f'Graph of Run with {num_steps} Steps')
