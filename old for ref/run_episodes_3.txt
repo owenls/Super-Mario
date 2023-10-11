@@ -1,3 +1,0 @@
-Step/Episode 2: Total Reward = 1537.0
-Step/Episode 3: Total Reward = 2211.0
-Step/Episode 4: Total Reward = 523.0

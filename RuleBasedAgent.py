@@ -42,7 +42,7 @@ class RuleBasedMarioAgent:
     #   - Specifies agent actions, frame delay, and other parameters.
     def __init__(self):
         self.env = gym.make("SuperMarioBros-1-1-v0",
-                            apply_api_compatibility=True, render_mode="human")
+                            apply_api_compatibility=True, render_mode="console")
         self.env = JoypadSpace(self.env, SIMPLE_MOVEMENT)
         self.done = True
         self.env.reset()
@@ -151,7 +151,7 @@ class RuleBasedMarioAgent:
                     total_reward += reward
                     steps += 1
                     step_rewards.append(total_reward)
-                    time.sleep(self.frame_delay)
+                    # time.sleep(self.frame_delay)
 
             if "flag_get" in info and info["flag_get"]:
                 self.done = True

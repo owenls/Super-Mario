@@ -62,7 +62,7 @@ class QLearningAgent:
         # Close to zero means the agent mostly exploits its current knowledge.
         # Close to 1 means he chooses more random actions to try discover better strategies.
         # High epsilon values good when the agent doesn't know much about the environment.
-        self.epsilon = 0.1
+        self.epsilon = 1
 
         self.frame_delay = 0.02  # This is just the delay used to slow down the frames
         self.current_state = None
@@ -165,8 +165,7 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print("No saved model found.")
 
-    steps = 1000
-    000
+    steps = 1000000
     step_rewards, episode_rewards = mario_agent.run(steps=steps)
 
     # Saving all steps and episode rewards to file

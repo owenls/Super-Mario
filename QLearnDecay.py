@@ -49,6 +49,7 @@ class QLearningAgent:
         self.Q = {}
         self.episode_count = 0  # Initialize episode count
         self.all_rewards = []
+        
         self.all_wins = []
         self.learning_rate = 0.3
         self.discount_factor = 0.9
@@ -103,62 +104,62 @@ class QLearningAgent:
         return np.prod(self.env.observation_space.shape)
 
     def update_q_table(self, state, action, reward, obs, done, info):
-        if state not in self.Q:
-            self.Q[state] = np.zeros(self.action_space_size)
-        if obs not in self.Q:
-            self.Q[obs] = np.zeros(self.action_space_size)
-        death_penalty = -500
-        progress_reward = 10
-        stuck_penalty = -15
-        end_level_reward = 1000
-
-
         # Reward for reaching the end of the level
+        end_level_reward = 1000
         if done and 'flag_get' in info and info['flag_get']:
-            self.save_model("win_model.pkl")
             reward += end_level_reward
 
         # Penalty for death
+        death_penalty = -500
         if done and 'life' in info and info['life'] < self.life_count:
-            reward -= death_penalty
+            reward += death_penalty
 
         # Reward for progress
+        progress_reward = 10
         if 'x_pos' in info and info['x_pos'] > self.previous_x_pos:
             reward += progress_reward
 
-       
-
+        # Stuck Penalty
+        stuck_penalty = -20
         if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
             self.consecutive_stuck_frames += 1
         else:
             self.consecutive_stuck_frames = 0
-            self.previous_x_pos = info.get('x_pos', None)
 
         if self.consecutive_stuck_frames > 20:
             reward -= stuck_penalty
             self.consecutive_stuck_frames = 0
 
+        # Update Q-values
+        if state not in self.Q:
+            self.Q[state] = np.zeros(self.action_space_size)
+        if obs not in self.Q:
+            self.Q[obs] = np.zeros(self.action_space_size)
+        
         max_next_action_value = np.max(self.Q[obs])
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
             self.learning_rate * (reward + self.discount_factor * max_next_action_value)
 
         self.previous_x_pos = info.get('x_pos', None)
 
+
     def run(self, steps):
         step_count = 0
         episode_rewards = []
         step_rewards = []
         highest_reward = 0  # Initialize variable to store the highest reward achieved
+        
         while step_count < steps:
             self.current_state = self.preprocess_state(self.env.reset())
             total_reward = 0
             self.done = False
+            self.previous_x_pos = 0  # Reset starting x-position for new episode
             
             while not self.done and step_count < steps:
                 action = self.select_action(self.current_state, step_count)
                 obs, reward, terminated, truncated, info = self.env.step(action)
                 obs = self.preprocess_state(obs)
-
+                
                 self.update_q_table(self.current_state, action, reward, obs, self.done, info)
                 self.current_state = obs
                 total_reward += reward
@@ -173,14 +174,13 @@ class QLearningAgent:
             print(f"Episode {self.episode_count}, Steps: {step_count}, Total Reward = {total_reward}")
 
             # Check if total_reward is a new highest and save model if it is
-            if total_reward > highest_reward:
+            if step_count % 100000:
                 highest_reward = total_reward
                 model_filename = f'decay/mario_model_{step_count}_reward_{highest_reward}.pkl'
                 self.save_model(model_filename)
 
         self.env.close()
         return step_rewards, episode_rewards
-
 
 
     def load_model(self, filename):
