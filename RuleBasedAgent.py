@@ -11,6 +11,11 @@ import numpy as np
 
 
 class RuleBasedMarioAgent:
+
+    # Initializes the RuleBasedMarioAgent.
+    #   - Sets up the Super Mario environment.
+    #   - Defines colors for game elements.
+    #   - Specifies agent actions, frame delay, and other parameters.
     def __init__(self):
         self.env = gym.make("SuperMarioBros-v0",
                             apply_api_compatibility=True, render_mode="human")
@@ -33,6 +38,16 @@ class RuleBasedMarioAgent:
         self.previous_x_pos = 10
         self.consecutive_stuck_frames = 0
 
+    # Determines whether Mario should perform a jump action based on the observed game state.
+    #   - Checks for nearby goombas, pipes, missing floor, and turtles.
+    #   - Monitors Mario for getting stuck.
+
+    # Args:
+    #    obs (numpy.ndarray): The observed game screen.
+    #    info (dict): Additional game information.
+
+    # Returns:
+    #    bool: True if Mario should jump, False otherwise.
     def shouldJump(self, obs, info):
         # CHECK IF GOOMBA NEARBY
         target_color = self.goomba
@@ -82,17 +97,21 @@ class RuleBasedMarioAgent:
 
         return False
 
+    # Runs the Rule-Based Mario Agent in the Super Mario Bros. environment.
+    #   - Executes actions to move Mario right.
+    #   - Decides to jump based on the 'shouldJump' function.
+
     def run(self):
-        for step in range(10000):
+        for _ in range(10000):
             if self.done:
-                state = self.env.reset()
+                self.env.reset()
 
             obs, reward, terminated, truncated, info = self.env.step(
                 self.right_action)
             self.done = terminated or truncated
 
             if self.done:
-                state = self.env.reset()
+                self.env.reset()
 
             if self.shouldJump(obs, info):
                 for _ in range(self.jump_duration):
@@ -100,7 +119,9 @@ class RuleBasedMarioAgent:
                         self.jump_and_go_right)
                     self.done = terminated or truncated
                     if self.done:
-                        state = self.env.reset()
+                        self.env.reset()
+                    time.sleep(self.frame_delay)
+
             time.sleep(self.frame_delay)
 
         self.env.close()
