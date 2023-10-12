@@ -51,39 +51,39 @@ class QLearningAgent:
         if obs not in self.Q:
             self.Q[obs] = np.zeros(self.action_space_size)
 
-        jump_obstacle_reward = 1000
-        jump_enemy_reward = 900
-        collect_coin_reward = 5
-        level_complete_reward = 10000
-        unnecessary_jump_penalty = 600
-        time_penalty = 0.1
-        stuck_penalty = 400
-        death_penalty = 5000
-        jump_fail_penalty = 800
+        # jump_obstacle_reward = 1000
+        # jump_enemy_reward = 900
+        # collect_coin_reward = 5
+        # level_complete_reward = 10000
+        # unnecessary_jump_penalty = 600
+        # time_penalty = 0.1
+        # stuck_penalty = 400
+        # death_penalty = 5000
+        # jump_fail_penalty = 800
 
-        if done:
-            if 'time' in info and info['time'] == 0:
-                reward -= time_penalty * self.frame_delay
-            elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-                reward -= stuck_penalty
-            elif 'life' in info and info['life'] < self.life_count:
-                reward -= self.fall_penalty
-            elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-                reward -= jump_fail_penalty
+        # if done:
+        #     if 'time' in info and info['time'] == 0:
+        #         reward -= time_penalty * self.frame_delay
+        #     elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+        #         reward -= stuck_penalty
+        #     elif 'life' in info and info['life'] < self.life_count:
+        #         reward -= self.fall_penalty
+        #     elif 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+        #         reward -= jump_fail_penalty
 
-        if 'life' in info and info['life'] < self.life_count:
-            reward -= death_penalty
+        # if 'life' in info and info['life'] < self.life_count:
+        #     reward -= death_penalty
 
-        if reward == 0 and not done:
-            reward -= time_penalty * self.frame_delay
+        # if reward == 0 and not done:
+        #     reward -= time_penalty * self.frame_delay
 
-        if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-            self.consecutive_stuck_frames += 1
-        else:
-            self.consecutive_stuck_frames = 0
-        stuck_threshold = 5
-        if self.consecutive_stuck_frames >= stuck_threshold:
-            reward -= stuck_penalty
+        # if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+        #     self.consecutive_stuck_frames += 1
+        # else:
+        #     self.consecutive_stuck_frames = 0
+        # stuck_threshold = 5
+        # if self.consecutive_stuck_frames >= stuck_threshold:
+        #     reward -= stuck_penalty
 
         max_next_action_value = np.max(self.Q[obs])
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     mario_agent = QLearningAgent(env)
 
     try:
-        mario_agent.load_model('mario_model_ep18.pkl')
+        mario_agent.load_model('mario_1model_ep18.pkl')
         print("Loaded saved model.")
     except FileNotFoundError:
         print("No saved model found.")

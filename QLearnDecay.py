@@ -72,47 +72,51 @@ class QLearningAgent:
         return np.prod(self.env.observation_space.shape)
 
     def update_q_table(self, state, action, reward, obs, done, info):
-        death_penalty = -500
-        progress_reward = 10
-        stuck_penalty = -100
-        end_level_reward = 1000
-        jump_success_reward = 50  # New reward
-        jump_fail_penalty = -50   # New penalty
-
         if state not in self.Q:
             self.Q[state] = np.zeros(self.action_space_size)
         if obs not in self.Q:
             self.Q[obs] = np.zeros(self.action_space_size)
+        # death_penalty = -500
+        # progress_reward = 10
+        # stuck_penalty = -100
+        end_level_reward = 1000
+        # jump_success_reward = 50  # New reward
+        # jump_fail_penalty = -50   # New penalty
+
+        # if state not in self.Q:
+        #     self.Q[state] = np.zeros(self.action_space_size)
+        # if obs not in self.Q:
+        #     self.Q[obs] = np.zeros(self.action_space_size)
 
         # Reward for reaching the end of the level
         if done and 'flag_get' in info and info['flag_get']:
             self.save_model("win_model.pkl")
             reward += end_level_reward
 
-        # Penalty for death
-        if done and 'life' in info and info['life'] < self.life_count:
-            reward -= death_penalty
+        # # Penalty for death
+        # if done and 'life' in info and info['life'] < self.life_count:
+        #     reward -= death_penalty
 
-        # Reward for progress
-        if 'x_pos' in info and info['x_pos'] > self.previous_x_pos:
-            reward += progress_reward
+        # # Reward for progress
+        # if 'x_pos' in info and info['x_pos'] > self.previous_x_pos:
+        #     reward += progress_reward
 
-        # Check for failed jumps (you might need to refine this based on specific game mechanics)
-        if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-            reward -= jump_fail_penalty
+        # # Check for failed jumps (you might need to refine this based on specific game mechanics)
+        # if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+        #     reward -= jump_fail_penalty
 
-        if done and 'life' in info and info['life'] < self.life_count and 'x_pos' in info and abs(info['x_pos'] - self.previous_x_pos) < 5:
-            reward -= death_penalty
+        # if done and 'life' in info and info['life'] < self.life_count and 'x_pos' in info and abs(info['x_pos'] - self.previous_x_pos) < 5:
+        #     reward -= death_penalty
 
-        if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
-            self.consecutive_stuck_frames += 1
-        else:
-            self.consecutive_stuck_frames = 0
-            self.previous_x_pos = info.get('x_pos', None)
+        # if 'x_pos' in info and info['x_pos'] == self.previous_x_pos:
+        #     self.consecutive_stuck_frames += 1
+        # else:
+        #     self.consecutive_stuck_frames = 0
+        #     self.previous_x_pos = info.get('x_pos', None)
 
-        if self.consecutive_stuck_frames > 20:
-            reward -= stuck_penalty
-            self.consecutive_stuck_frames = 0
+        # if self.consecutive_stuck_frames > 20:
+        #     reward -= stuck_penalty
+        #     self.consecutive_stuck_frames = 0
 
         max_next_action_value = np.max(self.Q[obs])
         self.Q[state][action] = (1 - self.learning_rate) * self.Q[state][action] + \
@@ -151,7 +155,7 @@ class QLearningAgent:
                 # Save model if the agent achieves a new highest reward
                 if total_reward > highest_reward:
                     highest_reward = total_reward
-                    model_filename = f'models/1M/mario_model_{step}_reward_{total_reward}.pkl'
+                    model_filename = f'models/10M/mario_model_{step}_reward_{total_reward}.pkl'
                     self.save_model(model_filename)
 
             if step % 100 == 0:
@@ -189,26 +193,29 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print("No saved model found.")
 
-    num_steps = 1000000 # Set the number of steps for the run
+    num_steps = 10000000 # Set the number of steps for the run
     mario_agent.run(num_steps)
 
     # Compute average rewards per 1000 episodes
     avg_rewards = [np.mean(mario_agent.all_rewards[i:i+100]) for i in range(0, len(mario_agent.all_rewards), 100)]
-    episodes_range = range(1000, len(mario_agent.all_rewards)+1, 100)
+    episodes_range = range(100, len(mario_agent.all_rewards)+1, 100)
 
-    # Plot average rewards
-    plt.plot(episodes_range, avg_rewards, '-o')
-    plt.xlabel('Episodes')
-    plt.ylabel('Average Reward')
-    plt.title('Average Reward per 100 Episodes')
-    plt.show()
+    if len(avg_rewards) == len(episodes_range):
+        plt.plot(episodes_range, avg_rewards, '-o')
+        plt.xlabel('Episodes')
+        plt.ylabel('Average Reward')
+        plt.title('Average Reward per 100 Episodes')
+        plt.show()
+    else:
+        print("Mismatch in dimensions: episodes_range:", len(episodes_range), "avg_rewards:", len(avg_rewards))
 
-    # Compute win rate per 1000 episodes
-    win_rates = [np.mean(mario_agent.all_wins[i:i+100]) for i in range(0, len(mario_agent.all_wins), 100)]
 
-    # Plot win rate
-    plt.plot(episodes_range, win_rates, '-o')
-    plt.xlabel('Episodes')
-    plt.ylabel('Win Rate')
-    plt.title('Win Rate per 100 Episodes')
-    plt.show()
+    # # Compute win rate per 1000 episodes
+    # win_rates = [np.mean(mario_agent.all_wins[i:i+100]) for i in range(0, len(mario_agent.all_wins), 100)]
+
+    # # Plot win rate
+    # plt.plot(episodes_range, win_rates, '-o')
+    # plt.xlabel('Episodes')
+    # plt.ylabel('Win Rate')
+    # plt.title('Win Rate per 100 Episodes')
+    # plt.show()
