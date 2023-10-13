@@ -51,10 +51,10 @@ class QLearningAgent:
         self.all_rewards = []
         
         self.all_wins = []
-        self.learning_rate = 0.3
-        self.discount_factor = 0.9
+        self.learning_rate = 0.1
+        self.discount_factor = 0.95
         self.epsilon = 1
-        self.epsilon_decay = 0.99999
+        self.epsilon_decay = 0.999995
         self.epsilon_min = 0.1
         self.frame_delay = 1
         self.current_state = None
@@ -200,12 +200,10 @@ if __name__ == "__main__":
     env = gym.make("SuperMarioBros-v0", apply_api_compatibility=True, render_mode="human")
     mario_agent = QLearningAgent(env)
 
-    try:
-        print("Loaded saved model.")
-    except FileNotFoundError:
-        print("No saved model found.")
+    model_filename = 'decay1m/mario_model_521672_reward_1448.0.pkl'
+    mario_agent.load_model(model_filename)
 
-    num_steps = 1000000
+    num_steps = 10000000
     step_rewards, episode_rewards = mario_agent.run(num_steps)
 
     # Saving all steps and episode rewards to file
