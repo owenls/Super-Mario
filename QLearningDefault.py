@@ -139,7 +139,7 @@ class QLearningAgent:
                 # If Mario reaches the flag then save the Q table data
                 self.done = terminated or truncated
                 if self.done and 'flag_get' in info and info['flag_get']:
-                    self.save_model('mario_model.pkl')
+                    self.save_model(f'mario_model_win_{step_count}.pkl')
 
             episode_count += 1
             episode_rewards.append((episode_count, total_reward))

@@ -9,7 +9,7 @@ def plot_rewards(step_rewards, episode_rewards, epsilon, learning_rate, discount
     plt.plot(steps, s_rewards, label='Rewards per Step')
     max_step_reward_idx = s_rewards.index(max(s_rewards))
     plt.scatter(steps[max_step_reward_idx], s_rewards[max_step_reward_idx], color='red')
-    plt.annotate(f"Win Model at Step: {steps[max_step_reward_idx]} with Reward: {s_rewards[max_step_reward_idx]}", 
+    plt.annotate(f"Highest Score at Step: {steps[max_step_reward_idx]} with Reward: {s_rewards[max_step_reward_idx]}", 
                  xy=(steps[max_step_reward_idx], s_rewards[max_step_reward_idx]),
                  xytext=(steps[max_step_reward_idx]-len(steps)*0.2, s_rewards[max_step_reward_idx]-max(s_rewards)*0.1),
                  arrowprops=dict(arrowstyle="->"))
@@ -25,7 +25,7 @@ def plot_rewards(step_rewards, episode_rewards, epsilon, learning_rate, discount
     plt.plot(episodes, e_rewards, label='Rewards per Episode')
     max_episode_reward_idx = e_rewards.index(max(e_rewards))
     plt.scatter(episodes[max_episode_reward_idx], e_rewards[max_episode_reward_idx], color='red')
-    plt.annotate(f"Win Model at Episode: {episodes[max_episode_reward_idx]} with Reward: {e_rewards[max_episode_reward_idx]}", 
+    plt.annotate(f"Highest Score at Episode: {episodes[max_episode_reward_idx]} with Reward: {e_rewards[max_episode_reward_idx]}", 
                  xy=(episodes[max_episode_reward_idx], e_rewards[max_episode_reward_idx]),
                  xytext=(episodes[max_episode_reward_idx]-len(episodes)*0.2, e_rewards[max_episode_reward_idx]-max(e_rewards)*0.1),
                  arrowprops=dict(arrowstyle="->"))
@@ -75,14 +75,14 @@ def read_data_from_file(filename):
 
 if __name__ == "__main__":
     # Read data from files
-    episode_rewards = read_data_from_file("dec_run_episodes_264.txt")
-    step_rewards = read_data_from_file("dec_un_steps_1000000.txt")
+    episode_rewards = read_data_from_file("def_run_episodes_63.txt")
+    step_rewards = read_data_from_file("def_run_steps_1000000.txt")
     
     # Set these values according to your requirement or fetch from your RL model
     epsilon = 1
     learning_rate = 0.3
     discount_factor = 0.9
-    plot_learning_curve(episode_rewards, window_size=10)  # Feel free to adjust the window_size as needed.
+    # plot_learning_curve(episode_rewards, window_size=10)  # Feel free to adjust the window_size as needed.
 
-    # plot_rewards(step_rewards, episode_rewards, epsilon, learning_rate, discount_factor)
+    plot_rewards(step_rewards, episode_rewards, epsilon, learning_rate, discount_factor)
 

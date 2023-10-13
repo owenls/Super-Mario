@@ -211,9 +211,9 @@ if __name__ == "__main__":
 
     # Saving all steps and episode rewards to file
     for step, reward in step_rewards:
-        save_to_file(f'dec_un_steps_{num_steps}.txt', step, reward)
+        save_to_file(f'dec10m_un_steps_{num_steps}.txt', step, reward)
     for episode, reward in episode_rewards:
-        save_to_file(f'dec_run_episodes_{len(episode_rewards)}.txt', episode, reward)
+        save_to_file(f'dec10m_run_episodes_{len(episode_rewards)}.txt', episode, reward)
 
     # Plot the rewards
     plot_rewards(step_rewards, episode_rewards, mario_agent.epsilon, mario_agent.learning_rate, mario_agent.discount_factor)
