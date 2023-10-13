@@ -54,7 +54,7 @@ class QLearningAgent:
         self.learning_rate = 0.1
         self.discount_factor = 0.95
         self.epsilon = 1
-        self.epsilon_decay = 0.999995
+        self.epsilon_decay = 0.9999
         self.epsilon_min = 0.1
         self.frame_delay = 1
         self.current_state = None
@@ -178,6 +178,9 @@ class QLearningAgent:
                 highest_reward = total_reward
                 model_filename = f'decay/mario_model_{step_count}_reward_{highest_reward}.pkl'
                 self.save_model(model_filename)
+            if self.done and 'flag_get' in info and info['flag_get']:
+                win = f'decay/mario_win_model_{step_count}_reward_{highest_reward}.pkl'
+                self.save_model(win)
 
         self.env.close()
         return step_rewards, episode_rewards
@@ -203,7 +206,7 @@ if __name__ == "__main__":
     model_filename = 'decay1m/mario_model_521672_reward_1448.0.pkl'
     mario_agent.load_model(model_filename)
 
-    num_steps = 10000000
+    num_steps = 10000000 
     step_rewards, episode_rewards = mario_agent.run(num_steps)
 
     # Saving all steps and episode rewards to file
