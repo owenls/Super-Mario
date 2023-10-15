@@ -52,7 +52,7 @@ class QLearningAgent:
         
         self.all_wins = []
         self.learning_rate = 0.1
-        self.discount_factor = 0.95
+        self.discount_factor = 0.85
         self.epsilon = 1
         self.epsilon_decay = 0.9999
         self.epsilon_min = 0.1

@@ -1,0 +1,14 @@
+1 MILLION RUN FOR DECAY 
+self.learning_rate = 0.3
+self.discount_factor = 0.9
+self.epsilon = 1
+self.epsilon_decay = 0.99999
+self.epsilon_min = 0.1
+
+
+10 MILLION RUN FOR DECAY
+self.learning_rate = 0.1
+self.discount_factor = 0.85
+self.epsilon = 1
+self.epsilon_decay = 0.9999
+self.epsilon_min = 0.1
